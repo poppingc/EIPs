@@ -1,58 +1,98 @@
 ---
-title: <The EIP title is a few words, not a complete sentence>
-description: <Description is one full (short) sentence>
-author: <a comma separated list of the author's or authors' name + GitHub username (in parenthesis), or name and email (in angle brackets).  Example, FirstName LastName (@GitHubUsername), FirstName LastName <foo@bar.com>, FirstName (@GitHubUsername) and GitHubUsername (@GitHubUsername)>
-discussions-to: <URL>
+title: Time-lock Extension for ERC20
+description: An extension to the ERC20 standard with methods for allocating tokens and locking tokens based on time.
+author: Mike <mike@sss.org>
+discussions-to: <https://ethereum-magicians.org/t/eip-5489-nft-hyperlink-extension/10431>
 status: Draft
-type: <Standards Track, Meta, or Informational>
-category: <Core, Networking, Interface, or ERC> # Only required for Standards Track. Otherwise, remove this field.
-created: <date created on, in ISO 8601 (yyyy-mm-dd) format>
-requires: <EIP number(s)> # Only required when you reference an EIP in the `Specification` section. Otherwise, remove this field.
+type: Standards Track
+category: ERC
+created: 2023-03-08
+requires: 20
 ---
-
-<!--
-  READ EIP-1 (https://eips.ethereum.org/EIPS/eip-1) BEFORE USING THIS TEMPLATE!
-
-  This is the suggested template for new EIPs. After you have filled in the requisite fields, please delete these comments.
-
-  Note that an EIP number will be assigned by an editor. When opening a pull request to submit your EIP, please use an abbreviated title in the filename, `eip-draft_title_abbrev.md`.
-
-  The title should be 44 characters or less. It should not repeat the EIP number in title, irrespective of the category.
-
-  TODO: Remove this comment before submitting
--->
 
 ## Abstract
 
-<!--
-  The Abstract is a multi-sentence (short paragraph) technical summary. This should be a very terse and human-readable version of the specification section. Someone should be able to read only the abstract to get the gist of what this specification does.
-
-  TODO: Remove this comment before submitting
--->
+This EIP introduces general methods for allocating tokens and automatically time-locking tokens according to the release schedule within a contract to extend the ERC20 standard, without the need of transferring tokens to an external escrow smart contract.
+It also provides an interface for all third parties to query the lock-up balance of each allocation, token release schedule, and calculate the real circulation of tokens.
 
 ## Motivation
 
-<!--
-  This section is optional.
+Tokens typically need to be time-locked against transfers to avoid malicious dumping when TGE. Besides, the token issuer was usually required to announce to the community / stakeholders the lock-up status of each allocated token, the time-based release rules and the real circulation of the token according to its token vesting schedules.
 
-  The motivation section should include a description of any nontrivial problems the EIP solves. It should not describe how the EIP solves those problems, unless it is not immediately obvious. It should not describe why the EIP should be made into a standard, unless it is not immediately obvious.
+Time-locking of tokens can also be achieved via transferring tokens to an escrow smart contract, which requires additional trust on the escrow contract and additional approval process for token transfer, resulting in increased operations costs.
 
-  With a few exceptions, external links are not allowed. If you feel that a particular resource would demonstrate a compelling case for your EIP, then save it as a printer-friendly PDF, put it in the assets folder, and link to that copy.
+Therefore, creating general methods for allocating tokens and automatically time-locking tokens within a contract to extend the ERC20 can simplify implementations and improve efficiency.
 
-  TODO: Remove this comment before submitting
--->
+Here are some use cases that can benefit from this standard:
+- Simply publicize the allocation of tokens 
+- Clearly publicize the token release schedule of each allocation 
+- Conveniently query the overall lock-up balance to calculate the real circulation 
+- Avoid rug pull and improve token transparency
+
 
 ## Specification
 
-<!--
-  The Specification section should describe the syntax and semantics of any new feature. The specification should be detailed enough to allow competing, interoperable implementations for any of the current Ethereum platforms (besu, erigon, ethereumjs, go-ethereum, nethermind, or others).
-
-  It is recommended to follow RFC 2119 and RFC 8170. Do not remove the key word definitions if RFC 2119 and RFC 8170 are followed.
-
-  TODO: Remove this comment before submitting
--->
-
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in RFC 2119 and RFC 8174.
+
+Interface
+
+## IERC5489
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface IERC9999 {
+
+    /**
+     * @dev The `ReleaseRule` struct is used to store the every release rule of the specific token allocation part.
+     * @param `releaseTime` of the time of token release
+     * @param `releasePercentage` of the percentage of token release
+     */
+    struct ReleaseRule {
+        uint256 releaseTime;
+        uint256 releasePercentage;
+    }
+
+    /**
+     * @dev The `Allocation` struct is used to store the allocation detail of each token part.
+     * @param `allocationTitle` of the title of the allocation part.
+     * @param `allocationPercentage` of the percentage of the allocation part.
+     * @param `nextClaimIndex` of current index of token claim.
+     * @param `releaseRules` of the array of release rules in this allocation part.
+     */
+    struct Allocation {
+        string allocationTitle;
+        uint256 allocationPercentage;
+        uint16 nextClaimIndex;
+        ReleaseRule[] releaseRules;
+    }
+    /**
+     * @dev This event emits when claiming token.
+     * @param `to` of the address you want to claim.
+     * @param `value` of the token amount you want to claim.
+     */
+    event Claim(address indexed to, uint256 indexed value);
+
+    /**
+     * @dev Claim all the tokens that can be claimed in an allocated part by `allocationTitle` to address `to`.
+     * @param `allocationTitle` of title of allocation which you want to claim.
+     * @param `to` of the address you want to claim.
+     * This method will emit `Claim` event.
+     */
+    function claim(string memory allocationTitle, address to) external;
+
+    /**
+     * @dev Query the allocation detail by `allocationTitle`.
+     * @param `allocationTitle` of the title of the allocation part.
+     */
+    function allocationByTitle(string memory allocationTitle) external view returns (Allocation memory);
+
+    /**
+     * @dev Query all the allocation titles.
+     */
+    function allAllocationTitles() external view returns (string[] memory);
+}
+
+
 
 ## Rationale
 
