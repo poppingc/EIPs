@@ -36,7 +36,9 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 Interface
 
-## IERC5489
+## IERC9999
+
+```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -92,7 +94,7 @@ interface IERC9999 {
     function allAllocationTitles() external view returns (string[] memory);
 }
 
-
+```
 
 ## Rationale
 
